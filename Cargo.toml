@@ -1,0 +1,15 @@
+[package]
+name = "wilde"
+version = "0.1.0"
+authors = ["Simon Dickson <simon@simonhdickson.com>"]
+build = "build.rs"
+
+[build-dependencies]
+capnpc = "0.8"
+
+[dependencies]
+capnp = "0.8"
+capnp-rpc = "0.8"
+mio-uds = "0.6"
+tokio-io = "0.1"
+tokio-core = "0.1"
