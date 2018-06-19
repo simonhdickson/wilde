@@ -5,11 +5,18 @@ struct Message(T) {
     data @1 :T;
 }
 
-interface Producer(T) {
-    publish @0 (data :T) -> ();
+interface PublisherFunction(T) {
+    call @0 (message :Message(T)) -> ();
+}
+
+interface Publisher(T) {
+    create @0 (topic :Text) -> (publishFunc :PublisherFunction(T));
+}
+
+interface ConsumerFunction(T) {
+    call @0 (message :Message(T)) -> (processed :Bool);
 }
 
 interface Consumer(T) {
-    consume @0 () -> (message :Message(T));
-    confirm @1 (message :Message(T)) -> ();
+    subscribe @0 (topic :Text, consumerGroup :Text, consumer :Text, consumeFunc :ConsumerFunction(T)) -> ();
 }

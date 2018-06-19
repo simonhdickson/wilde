@@ -5,5 +5,9 @@ pub mod consumer;
 pub mod producer;
 
 pub mod wilde_capnp {
-    include!(concat!("generated", "/wilde_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/wilde_capnp.rs"));
+}
+
+fn main () {
+    
 }
