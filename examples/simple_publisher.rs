@@ -3,6 +3,7 @@ extern crate capnp_rpc;
 extern crate futures;
 extern crate tokio_core;
 extern crate tokio_io;
+extern crate uuid;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use wilde_capnp::{publisher, message};
@@ -14,6 +15,7 @@ use tokio_core::reactor;
 use tokio_io::AsyncRead;
 
 use futures::Future;
+use uuid::Uuid;
 
 pub mod wilde_capnp {
     include!(concat!(env!("OUT_DIR"), "/wilde_capnp.rs"));
@@ -50,18 +52,21 @@ pub fn main() {
     let publisher_func = request.send().pipeline.get_publish_func();
     
     loop {
+        let uuid = &format!("{}", Uuid::new_v4());
+        let body = "hello world!";
+
         let mut builder = Builder::new_default();
         let mut message_builder = builder.init_root::<message::Builder<simple_message::Owned>>();
-        message_builder.set_id("");
-        message_builder.reborrow().init_data().set_text("");
+        message_builder.set_id(uuid);
+        message_builder.reborrow().init_data().set_text(body);
 
         let mut request = publisher_func.call_request();
         request.get().set_message(message_builder.as_reader()).unwrap();
 
         let result = request.send().promise.wait();
 
-        assert!(result.is_ok(), "failed to publish");
+        assert!(result.is_err(), "failed to publish");
 
-        println!("published event {}", "");
+        println!("published event id: {}, message: {}", uuid, body);
     }
 }
