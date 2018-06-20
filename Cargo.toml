@@ -15,3 +15,4 @@ tokio-core = "0.1"
 [dependencies]
 capnp = "0.8"
 capnp-rpc = "0.8"
+clap = "2.31"

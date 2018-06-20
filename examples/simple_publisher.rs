@@ -1,18 +1,18 @@
 extern crate capnp;
-#[macro_use] extern crate capnp_rpc;
+extern crate capnp_rpc;
 extern crate futures;
 extern crate tokio_core;
 extern crate tokio_io;
 
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
-use wilde_capnp::{consumer, consumer_function};
+use wilde_capnp::{publisher, message};
+use simple_capnp::simple_message;
 
-use capnp::capability::Promise;
+use capnp::message::Builder;
 
 use tokio_core::reactor;
 use tokio_io::AsyncRead;
 
-use simple_capnp::simple_message;
 use futures::Future;
 
 pub mod wilde_capnp {
@@ -21,22 +21,6 @@ pub mod wilde_capnp {
 
 pub mod simple_capnp {
     include!(concat!(env!("OUT_DIR"), "/simple_capnp.rs"));
-}
-
-struct PrintFunction;
-
-impl wilde_capnp::consumer_function::Server<simple_message::Owned> for PrintFunction  {
-    fn call(&mut self, params: consumer_function::CallParams<simple_message::Owned>, mut results: consumer_function::CallResults<simple_message::Owned>) -> Promise<(), ::capnp::Error>
-    {
-        let params = pry!(params.get());
-        let message = pry!(params.get_message());
-        let data = pry!(message.get_data());
-
-        println!("{}", pry!(data.get_text()));
-
-        results.get().set_processed(true);
-        Promise::ok(())
-    }
 }
 
 pub fn main() {
@@ -58,13 +42,26 @@ pub fn main() {
     let rpc_network = Box::new(twoparty::VatNetwork::new(reader, writer, rpc_twoparty_capnp::Side::Client, Default::default()));
 
     let mut rpc_system = RpcSystem::new(rpc_network, None);
-    let con: consumer::Client<simple_message::Owned> = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    let con: publisher::Client<simple_message::Owned> = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-    let mut request = con.subscribe_request();
+    let mut request = con.create_request();
     request.get().set_topic("hello-world");
-    request.get().set_consumer_group("simple-consumer");
-    request.get().set_consumer("simple-consumer-1");
-    request.get().set_consume_func(consumer_function::ToClient::new(PrintFunction).from_server::<::capnp_rpc::Server>());
 
-    let _result = core.run(rpc_system.join(request.send().promise)).unwrap();
+    let publisher_func = request.send().pipeline.get_publish_func();
+    
+    loop {
+        let mut builder = Builder::new_default();
+        let mut message_builder = builder.init_root::<message::Builder<simple_message::Owned>>();
+        message_builder.set_id("");
+        message_builder.reborrow().init_data().set_text("");
+
+        let mut request = publisher_func.call_request();
+        request.get().set_message(message_builder.as_reader()).unwrap();
+
+        let result = request.send().promise.wait();
+
+        assert!(result.is_ok(), "failed to publish");
+
+        println!("published event {}", "");
+    }
 }
