@@ -32,7 +32,7 @@ impl wilde_capnp::consumer_function::Server<simple_message::Owned> for PrintFunc
         let message = pry!(params.get_message());
         let data = pry!(message.get_data());
 
-        println!("{}", pry!(data.get_text()));
+        println!("got message: {}", pry!(data.get_text()));
 
         results.get().set_processed(true);
         Promise::ok(())
